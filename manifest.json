@@ -1,16 +1,16 @@
 {
   "manifest_version": 3,
-  "name": "LLM API Chat with Markdown Streaming",
+  "name": " LLM API Chat with Markdown Streaming",
   "version": "0.2",
-  "description": "Injects a persistent chat widget that sends the page context to LLM API and streams responses rendered in markdown.",
+  "description": "Injects a persistent chat widget that sends the page context to  LLM API and streams responses rendered in markdown.",
   "permissions": ["activeTab", "scripting"],
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["content.js"]
+      "js": ["libs/marked.min.js", "content.js"]
     }
   ],
   "action": {
-    "default_title": "LLM API Chat"
+    "default_title": " LLM API Chat"
   }
 }

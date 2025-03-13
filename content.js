@@ -34,28 +34,6 @@
 
   document.body.appendChild(container);
 
-  function loadMarked() {
-    return new Promise((resolve, reject) => {
-      if (window.marked) {
-        resolve();
-        return;
-      }
-
-      const script = document.createElement("script");
-      script.src = "https://cdn.jsdelivr.net/npm/marked/marked.min.js";
-      script.onload = () => resolve();
-      script.onerror = () => reject(new Error("Failed to load marked library"));
-
-      document.head.appendChild(script);
-    });
-  }
-
-  loadMarked()
-    .then(() => {
-      console.log("Marked loaded successfully.");
-    })
-    .catch((err) => console.error(err));
-
   let conversation = [];
 
   document.getElementById("close-chat").addEventListener("click", () => {
@@ -116,8 +94,8 @@
   }
 
   function sendChatMessage() {
-
     setStatus("Sending chat message...");
+
     const payload = {
       model: "gpt-3.5-turbo",
       messages: conversation,
@@ -125,6 +103,7 @@
       max_tokens: 1024,
       stream: true,
     };
+
     fetch(LM_API_URL, {
       method: "POST",
       headers: {
@@ -137,9 +116,11 @@
         if (!response.ok) {
           throw new Error("Network response was not ok");
         }
+
         const reader = response.body.getReader();
         const decoder = new TextDecoder("utf-8");
         let markdownResponse = "";
+
         function readStream() {
           reader
             .read()
