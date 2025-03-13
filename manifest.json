@@ -1,17 +1,18 @@
 {
   "manifest_version": 3,
-  "name": " LLM API Chat with Markdown Streaming",
-  "version": "0.2",
-  "description": "Injects a persistent chat widget that sends the page context to  LLM API and streams responses rendered in markdown.",
+  "name": "LLM API Chat Deluxe",
+  "version": "0.4",
+  "description": "A deluxe floating chat widget with streaming markdown and syntax-highlighted code blocks.",
   "permissions": ["activeTab", "scripting"],
+  "host_permissions": ["https://api.lmstudio.ai/*"],
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["libs/marked.min.js", "libs/highlight.min.js", "content.js"],
-      "css": ["libs/highlight.min.css"]
+      "js": ["libs/marked.min.js", "libs/highlight.min.js", "dist/content.js"],
+      "css": ["libs/highlight.css"]
     }
   ],
   "action": {
-    "default_title": " LLM API Chat"
+    "default_title": "LLM API Chat Deluxe"
   }
 }

@@ -1,22 +1,25 @@
+// Declare external libraries loaded via <script> tags.
+declare const marked: any;
+declare const hljs: any;
+
 (function () {
   const LM_API_URL = "http://127.0.0.1:1283/v1/chat/completions";
   const API_KEY = "YOUR_API_KEY_HERE";
   if (window.marked && window.hljs) {
     marked.setOptions({
 
-      highlight: function (code, lang) {
+      highlight: (code: string, lang: string) => {
         if (lang && hljs.getLanguage(lang)) {
           return hljs.highlight(code, { language: lang }).value;
         }
-
         return hljs.highlightAuto(code).value;
       },
-      langPrefix: "hljs language-",
+      langPrefix: 'hljs language-'
     });
 
   }
 
-  const container = document.createElement('div');
+  const container: HTMLDivElement = document.createElement('div');
   container.id = 'lm-chat-widget';
   container.style.cssText = `
     position: fixed;
@@ -35,7 +38,7 @@
     flex-direction: column;
   `;
 
-  const styleEl = document.createElement('style');
+  const styleEl: HTMLStyleElement = document.createElement('style');
   styleEl.textContent = `
     #lm-chat-widget header {
       background: linear-gradient(135deg, #4c6ef5, #15aabf);
@@ -148,11 +151,11 @@
 
   document.body.appendChild(container);
 
-  const minimizeBtn = document.getElementById("minimize-chat");
+  const minimizeBtn = document.getElementById("minimize-chat") as HTMLButtonElement;
   let isMinimized = false;
 
   minimizeBtn.addEventListener("click", () => {
-    const bodyEl = container.querySelector(".body");
+    const bodyEl = container.querySelector(".body") as HTMLElement;
     if (isMinimized) {
       bodyEl.style.display = "flex";
       minimizeBtn.innerHTML = "&#8211;";
@@ -163,18 +166,18 @@
     isMinimized = !isMinimized;
   });
 
-  document.getElementById("close-chat").addEventListener("click", () => {
+  (document.getElementById("close-chat") as HTMLButtonElement).addEventListener("click", () => {
     container.remove();
   });
 
-  let conversation = [];
+  const conversation: { role: string; content: string }[] = [];
 
-  function setStatus(text) {
-    document.getElementById("status").textContent = text;
+  function setStatus(text: string): void {
+    (document.getElementById("status") as HTMLElement).textContent = text;
   }
 
-  function appendMessage(sender, htmlContent) {
-    const chatLog = document.getElementById("chat-log");
+  function appendMessage(sender: string, htmlContent: string): void {
+    const chatLog = document.getElementById("chat-log") as HTMLElement;
     const msgEl = document.createElement("div");
     msgEl.className = "message";
     msgEl.innerHTML = `<span class="sender">${sender}:</span>
@@ -183,9 +186,9 @@
     chatLog.scrollTop = chatLog.scrollHeight;
   }
 
-  let streamingMsgEl = null;
-  function createStreamingMessage() {
-    const chatLog = document.getElementById("chat-log");
+  let streamingMsgEl: HTMLDivElement | null = null;
+  function createStreamingMessage(): void {
+    const chatLog = document.getElementById("chat-log") as HTMLElement;
     streamingMsgEl = document.createElement("div");
     streamingMsgEl.className = "message";
     streamingMsgEl.innerHTML = `<span class="sender"> LLM API:</span>
@@ -194,14 +197,14 @@
     chatLog.scrollTop = chatLog.scrollHeight;
   }
 
-  function renderMarkdown(text) {
+  function renderMarkdown(text: string): string {
     if (window.marked) {
       return marked.parse(text);
     }
     return text;
   }
 
-  document.getElementById("send-page").addEventListener("click", () => {
+  (document.getElementById("send-page") as HTMLButtonElement).addEventListener("click", () => {
     setStatus("Fetching page content...");
 
     const pageContent = document.body.innerText;
@@ -217,7 +220,7 @@
   });
 
   function sendUserMessage() {
-    const textarea = document.getElementById("chat-input");
+    const textarea = document.getElementById("chat-input") as HTMLTextAreaElement;
     const msg = textarea.value.trim();
 
     if (!msg) return;
@@ -229,10 +232,10 @@
     sendChatMessage();
   }
 
-  document.getElementById("send-message").addEventListener("click", sendUserMessage);
+  (document.getElementById("send-message") as HTMLButtonElement).addEventListener("click", sendUserMessage);
 
-  const textarea = document.getElementById("chat-input");
-  textarea.addEventListener("keydown", (e) => {
+  const textarea = document.getElementById("chat-input") as HTMLTextAreaElement;
+  textarea.addEventListener("keydown", (e: KeyboardEvent) => {
     if (e.key === "Enter") {
       if (e.ctrlKey) {
         return;
@@ -243,7 +246,7 @@
     }
   });
 
-  function sendChatMessage() {
+  function sendChatMessage(): void {
     setStatus("Sending chat message...");
 
     createStreamingMessage();
@@ -270,17 +273,19 @@
           throw new Error("Network response was not ok");
         }
 
-        const reader = response.body.getReader();
+        const reader = response.body!.getReader();
         const decoder = new TextDecoder("utf-8");
 
-        function readStream() {
+        function readStream(): void {
           reader
             .read()
             .then(({ done, value }) => {
               if (done) {
                 conversation.push({ role: "assistant", content: streamingText });
 
-                streamingMsgEl.querySelector("#streaming-content").innerHTML = renderMarkdown(streamingText);
+                if (streamingMsgEl) {
+                  streamingMsgEl.querySelector("#streaming-content")!.innerHTML = renderMarkdown(streamingText);
+                }
 
                 setStatus("Reply complete.");
                 return;
@@ -303,14 +308,16 @@
                       streamingText += delta.content;
                     }
 
-                    streamingMsgEl.querySelector("#streaming-content").innerHTML = renderMarkdown(streamingText);
+                    if (streamingMsgEl) {
+                      streamingMsgEl.querySelector("#streaming-content")!.innerHTML = renderMarkdown(streamingText);
+                    }
                   } catch (e) {
                     console.error("JSON parse error:", e);
                   }
                 }
               });
 
-              document.getElementById("chat-log").scrollTop = document.getElementById("chat-log").scrollHeight;
+              (document.getElementById("chat-log") as HTMLElement).scrollTop = (document.getElementById("chat-log") as HTMLElement).scrollHeight;
 
               readStream();
             })
