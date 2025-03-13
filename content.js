@@ -1,6 +1,20 @@
 (function () {
   const LM_API_URL = "http://127.0.0.1:1283/v1/chat/completions";
   const API_KEY = "YOUR_API_KEY_HERE";
+  if (window.marked && window.hljs) {
+    marked.setOptions({
+
+      highlight: function (code, lang) {
+        if (lang && hljs.getLanguage(lang)) {
+          return hljs.highlight(code, { language: lang }).value;
+        }
+
+        return hljs.highlightAuto(code).value;
+      },
+      langPrefix: "hljs language-",
+    });
+
+  }
 
   const container = document.createElement('div');
   container.id = 'lm-chat-widget';
