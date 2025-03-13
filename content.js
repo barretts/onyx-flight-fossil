@@ -137,9 +137,30 @@
               }
 
               const chunk = decoder.decode(value, { stream: true });
-              markdownResponse += chunk;
+              const lines = chunk.split('\n');
 
-              renderMarkdown(markdownResponse);
+              for (const line of lines) {
+                if (line.startsWith("data: ")) {
+                  const jsonStr = line.slice("data: ".length).trim();
+
+                  if (jsonStr === "[DONE]") {
+                    continue;
+                  }
+
+                  try {
+                    const dataObj = JSON.parse(jsonStr);
+                    const delta = dataObj.choices[0].delta;
+
+                    if (delta && delta.content) {
+                      markdownResponse += delta.content;
+                    }
+
+                    renderMarkdown(markdownResponse);
+                  } catch (e) {
+                    console.error("Error parsing JSON:", e);
+                  }
+                }
+              }
               readStream();
             })
             .catch((error) => {
