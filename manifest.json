@@ -4,11 +4,11 @@
   "version": "0.4",
   "description": "A deluxe floating chat widget with streaming markdown and syntax-highlighted code blocks.",
   "permissions": ["activeTab", "scripting"],
-  "host_permissions": ["https://api.lmstudio.ai/*"],
+  "host_permissions": ["http://127.0.0.1:1283/*"],
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["libs/marked.min.js", "libs/highlight.min.js", "dist/content.js"],
+      "js": ["dist/content.js"],
       "css": ["libs/highlight.css"]
     }
   ],
