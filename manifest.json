@@ -1,0 +1,11 @@
+{
+  "manifest_version": 3,
+  "name": "LLM API Chat with Context",
+  "version": "0.1",
+  "description": "Extracts the current page text, sends it as context to LLM API, then allows chatting about the page.",
+  "permissions": ["activeTab", "scripting"],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "LLM API Chat"
+  }
+}
