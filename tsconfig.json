@@ -1,13 +1,28 @@
 {
   "compilerOptions": {
-    "target": "ES2017",
-    "module": "ESNext",
-    "lib": ["DOM", "ES2017"],
-    "outDir": "dist",
-    "strict": true,
-    "esModuleInterop": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "target": "esnext",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
     "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "noFallthroughCasesInSwitch": true,
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": false,
+    "jsx": "react-jsx",
+    "sourceMap": true,
+    "noImplicitAny": false,
+    "removeComments": true,
+    "allowUmdGlobalAccess": true,
+    "baseUrl": "./",
   },
-  "include": ["src/**/*"]
+  "include": [
+      "./src", "./webpack.config.ts"
+  ]
 }
