@@ -17,6 +17,8 @@
     overflow: hidden;
     font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
     z-index: 10000;
+    display: flex;
+    flex-direction: column;
   `;
 
   const styleEl = document.createElement('style');
@@ -38,9 +40,11 @@
       cursor: pointer;
     }
     #lm-chat-widget .body {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
       padding: 15px;
-      overflow-y: auto;
-      max-height: calc(80vh - 50px);
+      overflow: hidden;
     }
     #lm-chat-widget .controls {
       margin-bottom: 10px;
@@ -57,66 +61,59 @@
     #lm-chat-widget .status {
       font-size: 13px;
       color: #555;
-      margin-top: 5px;
+      margin-left: 10px;
     }
     #lm-chat-widget .chat-log {
+      flex: 1;
       border: 1px solid #eee;
       border-radius: 4px;
       padding: 8px;
-      max-height: 150px;
       overflow-y: auto;
+      font-size: 14px;
       background: #fafafa;
       margin-bottom: 10px;
-      font-size: 14px;
     }
     #lm-chat-widget .chat-log .message {
       margin-bottom: 8px;
       line-height: 1.4;
     }
-    #lm-chat-widget .chat-log .message span {
-      display: block;
-    }
-    #lm-chat-widget .chat-log .message .user {
+    #lm-chat-widget .chat-log .message .sender {
       font-weight: bold;
       color: #333;
     }
-    #lm-chat-widget .chat-log .message .assistant {
-      color: #444;
+    #lm-chat-widget .chat-log .message .content {
       margin-left: 10px;
+      color: #444;
     }
-    #lm-chat-widget .input-group {
+    #lm-chat-widget .input-area {
       display: flex;
+      align-items: flex-end;
     }
-    #lm-chat-widget .input-group input {
-      flex-grow: 1;
+    #lm-chat-widget .input-area textarea {
+      flex: 1;
       padding: 8px;
       border: 1px solid #ddd;
-      border-radius: 4px 0 0 4px;
+      border-radius: 4px;
       font-size: 14px;
+      resize: none;
+      height: 50px;
     }
-    #lm-chat-widget .input-group button {
+    #lm-chat-widget .input-area button {
       background: #15aabf;
       border: none;
       color: #fff;
       padding: 8px 12px;
-      border-radius: 0 4px 4px 0;
+      border-radius: 4px;
       cursor: pointer;
       font-size: 14px;
-    }
-    #lm-chat-widget .markdown-view {
-      border: 1px solid #eee;
-      padding: 10px;
-      background: #fff;
-      border-radius: 4px;
-      font-size: 14px;
-      overflow-x: auto;
+      margin-left: 5px;
     }
   `;
   document.head.appendChild(styleEl);
 
   container.innerHTML = `
     <header>
-      <span>LM Studio Chat</span>
+      <span> LLM API Chat</span>
       <div>
         <button id="minimize-chat" title="Minimize">&#8211;</button>
         <button id="close-chat" title="Close">&times;</button>
@@ -127,13 +124,10 @@
         <button id="send-page">Send Page Context</button>
         <span class="status" id="status"></span>
       </div>
-      <div class="chat-area" id="chat-area" style="display: none;">
-        <div class="chat-log" id="chat-log"></div>
-        <div class="input-group">
-          <input type="text" id="chat-input" placeholder="Type your message here..." />
-          <button id="send-message">Send</button>
-        </div>
-        <div class="markdown-view" id="markdown-view" style="margin-top:10px;"></div>
+      <div class="chat-log" id="chat-log"></div>
+      <div class="input-area">
+        <textarea id="chat-input" placeholder="Type your message here..."></textarea>
+        <button id="send-message">Send</button>
       </div>
     </div>
   `;
@@ -146,7 +140,7 @@
   minimizeBtn.addEventListener("click", () => {
     const bodyEl = container.querySelector(".body");
     if (isMinimized) {
-      bodyEl.style.display = "block";
+      bodyEl.style.display = "flex";
       minimizeBtn.innerHTML = "&#8211;";
     } else {
       bodyEl.style.display = "none";
@@ -165,24 +159,32 @@
     document.getElementById("status").textContent = text;
   }
 
-  function addMessage(sender, text) {
+  function appendMessage(sender, htmlContent) {
     const chatLog = document.getElementById("chat-log");
     const msgEl = document.createElement("div");
     msgEl.className = "message";
-    msgEl.innerHTML = `<span class="user">${sender}:</span>
-                       <span class="${sender === "LM Studio" ? "assistant" : "user"}">${text}</span>`;
+    msgEl.innerHTML = `<span class="sender">${sender}:</span>
+                       <span class="content">${htmlContent}</span>`;
     chatLog.appendChild(msgEl);
     chatLog.scrollTop = chatLog.scrollHeight;
   }
 
-  function renderMarkdown(markdownText) {
-    const markdownView = document.getElementById("markdown-view");
+  let streamingMsgEl = null;
+  function createStreamingMessage() {
+    const chatLog = document.getElementById("chat-log");
+    streamingMsgEl = document.createElement("div");
+    streamingMsgEl.className = "message";
+    streamingMsgEl.innerHTML = `<span class="sender"> LLM API:</span>
+                                <span class="content" id="streaming-content"></span>`;
+    chatLog.appendChild(streamingMsgEl);
+    chatLog.scrollTop = chatLog.scrollHeight;
+  }
 
+  function renderMarkdown(text) {
     if (window.marked) {
-      markdownView.innerHTML = window.marked.parse(markdownText);
-    } else {
-      markdownView.textContent = markdownText;
+      return marked.parse(text);
     }
+    return text;
   }
 
   document.getElementById("send-page").addEventListener("click", () => {
@@ -198,25 +200,41 @@
     conversation.push(contextMessage);
 
     setStatus("Page context added. You can now chat about the page.");
-    document.getElementById("chat-area").style.display = "block";
   });
 
-  document.getElementById("send-message").addEventListener("click", () => {
-    const inputEl = document.getElementById("chat-input");
-    const userMessage = inputEl.value.trim();
+  function sendUserMessage() {
+    const textarea = document.getElementById("chat-input");
+    const msg = textarea.value.trim();
 
-    if (!userMessage) return;
+    if (!msg) return;
 
-    addMessage("User", userMessage);
-    conversation.push({ role: "user", content: userMessage });
-    inputEl.value = "";
+    appendMessage("User", msg);
+    conversation.push({ role: "user", content: msg });
+    textarea.value = "";
 
     sendChatMessage();
+  }
+
+  document.getElementById("send-message").addEventListener("click", sendUserMessage);
+
+  const textarea = document.getElementById("chat-input");
+  textarea.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      if (e.ctrlKey) {
+        return;
+      } else {
+        e.preventDefault();
+        sendUserMessage();
+      }
+    }
   });
 
   function sendChatMessage() {
     setStatus("Sending chat message...");
 
+    createStreamingMessage();
+
+    let streamingText = "";
     const payload = {
       model: "gpt-3.5-turbo",
       messages: conversation,
@@ -240,48 +258,46 @@
 
         const reader = response.body.getReader();
         const decoder = new TextDecoder("utf-8");
-        let markdownResponse = "";
 
         function readStream() {
           reader
             .read()
             .then(({ done, value }) => {
               if (done) {
-                conversation.push({
-                  role: "assistant",
-                  content: markdownResponse,
-                });
-                addMessage("LLM API", markdownResponse);
+                conversation.push({ role: "assistant", content: streamingText });
+
+                streamingMsgEl.querySelector("#streaming-content").innerHTML = renderMarkdown(streamingText);
 
                 setStatus("Reply complete.");
                 return;
               }
 
               const chunk = decoder.decode(value, { stream: true });
-              const lines = chunk.split('\n');
+              const lines = chunk.split("\n");
 
-              for (const line of lines) {
+              lines.forEach(line => {
                 if (line.startsWith("data: ")) {
                   const jsonStr = line.slice(6).trim();
 
-                  if (jsonStr === "[DONE]") {
-                    continue;
-                  }
+                  if (jsonStr === "[DONE]") return;
 
                   try {
                     const dataObj = JSON.parse(jsonStr);
                     const delta = dataObj.choices[0].delta;
 
                     if (delta && delta.content) {
-                      markdownResponse += delta.content;
+                      streamingText += delta.content;
                     }
 
-                    renderMarkdown(markdownResponse);
+                    streamingMsgEl.querySelector("#streaming-content").innerHTML = renderMarkdown(streamingText);
                   } catch (e) {
-                    console.error("Error parsing JSON:", e);
+                    console.error("JSON parse error:", e);
                   }
                 }
-              }
+              });
+
+              document.getElementById("chat-log").scrollTop = document.getElementById("chat-log").scrollHeight;
+
               readStream();
             })
             .catch((error) => {
