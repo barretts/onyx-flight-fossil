@@ -32,6 +32,7 @@
     "marked": "^4.2.12",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-shadow": "^20.6.0",
     "styled-components": "^6.1.15",
     "vite-plugin-css-injected-by-js": "^3.5.2",
     "vite-plugin-singlefile": "^2.2.0"

@@ -1,123 +1,214 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { marked } from "marked";
 import hljs from "highlight.js";
-import "highlight.js/styles/github-dark.css"; // Highlight.js theme
+import "highlight.js/styles/github-dark.css";
 import styled from "styled-components";
 
-// Configure marked.js
 marked.setOptions({
-  highlight: (code, lang) => (lang && hljs.getLanguage(lang) 
-    ? hljs.highlight(code, { language: lang }).value 
-    : hljs.highlightAuto(code).value),
-  langPrefix: "hljs language-",
+  highlight: (code: string, lang: string) => {
+    if (lang && hljs.getLanguage(lang)) {
+      return hljs.highlight(code, { language: lang }).value;
+    }
+    return hljs.highlightAuto(code).value;
+  },
+  langPrefix: "hljs language-"
 });
 
-// Base Button Style (Extensible)
-const ButtonBase = styled.button`
+const BaseButton = styled.button`
   padding: 10px 16px;
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 15px;
   border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background 0.2s ease;
-`;
-
-// Primary Action Button
-const PrimaryButton = styled(ButtonBase)`
-  background: #4f46e5;
-  color: white;
-  &:hover {
-    background: #4338ca;
-  }
-`;
-
-// Secondary (Lighter) Button
-const SecondaryButton = styled(ButtonBase)`
-  background: transparent;
-  color: white;
-  &:hover {
-    opacity: 0.8;
-  }
-`;
-
-// Shared Box Style for Messages, Inputs, etc.
-const Box = styled.div`
-  border: 1px solid #d1d5db;
   border-radius: 8px;
-  background: #f9fafb;
+  cursor: pointer;
+  transition: background 0.3s ease, transform 0.1s ease;
+  &:active {
+    transform: scale(0.98);
+  }
 `;
 
-// Chat Container
-const ChatContainer = styled(Box)`
+const PrimaryButton = styled(BaseButton)`
+  background-color: #2563eb;
+  color: #fff;
+  &:hover {
+    background-color: #1d4ed8;
+  }
+`;
+
+const SecondaryButton = styled(BaseButton)`
+  background-color: transparent;
+  color: #fff;
+  &:hover {
+    color: #fff;
+  }
+`;
+
+const ChatContainer = styled.div`
   position: fixed;
   bottom: 24px;
   right: 24px;
-  width: 380px;
+  width: 360px;
   max-height: 80vh;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
   display: flex;
   flex-direction: column;
   overflow: hidden;
   z-index: 1000;
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
 `;
 
-// Chat Header (Extends Box)
-const ChatHeader = styled(Box).attrs({ as: "header" })`
-  background: linear-gradient(90deg, #7c3aed, #4f46e5);
-  color: white;
-  padding: 12px 16px;
+const ChatHeader = styled.header`
+  background: #2563eb;
+  color: #ffffff;
+  padding: 16px;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  font-size: 16px;
   font-weight: bold;
-  border-bottom: none;
 `;
 
-// Chat Messages List
-const ChatMessages = styled(Box)`
+const ChatMessages = styled.div`
   flex: 1;
-  padding: 12px;
+  padding: 16px;
   overflow-y: auto;
+  background-color: #f6f8fa;
   font-size: 14px;
+  color: #333;
 `;
 
-// Input & Send Button Wrapper
 const ChatInputContainer = styled.div`
   display: flex;
-  margin-top: 12px;
+  border-top: 1px solid #e1e4e8;
 `;
 
-// Styled Textarea
 const ChatTextarea = styled.textarea`
   flex: 1;
-  padding: 10px;
+  padding: 12px;
   font-size: 14px;
   border: none;
   outline: none;
-  border-radius: 8px 0 0 8px;
   resize: none;
+  height: 60px;
   &:focus {
-    border: 2px solid #6366f1;
+    background-color: #f0f4ff;
   }
 `;
 
-// Send Button (Extends PrimaryButton)
 const ChatSendButton = styled(PrimaryButton)`
-  border-radius: 0 8px 8px 0;
+  border-radius: 0;
+  padding: 0 20px;
 `;
 
-const ChatWidget: React.FC = () => {
-  const [minimized, setMinimized] = useState(false);
-  const [input, setInput] = useState("");
-  const [messages, setMessages] = useState<{ role: string; content: string }[]>([]);
-  const [status, setStatus] = useState("Ready");
-  const chatLogRef = useRef<HTMLDivElement | null>(null);
+interface ChatMessage {
+  role: string;
+  content: string;
+}
 
-  const sendMessage = () => {
+interface ChatWidgetProps {
+  apiKey: string;
+}
+
+const ChatWidget: React.FC<ChatWidgetProps> = ({ apiKey }) => {
+  const [minimized, setMinimized] = useState(false);
+  const [status, setStatus] = useState<string>('');
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [input, setInput] = useState<string>('');
+  const chatLogRef = useRef<HTMLDivElement>(null);
+  const [streamingContent, setStreamingContent] = useState<string>('');
+
+  useEffect(() => {
+    if (chatLogRef.current) {
+      chatLogRef.current.scrollTop = chatLogRef.current.scrollHeight;
+    }
+  }, [messages, streamingContent]);
+
+  const sendPageContext = () => {
+    setStatus("Extracting page context...");
+    const pageContent = document.body.innerText;
+    const pageUrl = window.location.href;
+    const contextMsg: ChatMessage = {
+      role: "system",
+      content: `Context from page (${pageUrl}):\n${pageContent}`
+    };
+    setMessages(prev => [...prev, contextMsg]);
+    setStatus("Context sent. Start chatting!");
+  };
+
+  const appendMessage = (msg: ChatMessage) => {
+    setMessages(prev => [...prev, msg]);
+  };
+
+  const sendUserMessage = () => {
     if (!input.trim()) return;
-    setMessages([...messages, { role: "User", content: input }]);
-    setInput("");
+    const userMsg: ChatMessage = { role: "user", content: input.trim() };
+    appendMessage(userMsg);
+    setInput('');
+    sendChatMessage([...messages, userMsg]);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.ctrlKey) {
+      e.preventDefault();
+      sendUserMessage();
+    }
+  };
+
+  const sendChatMessage = async (conversation: ChatMessage[]) => {
+    setStatus("Sending message...");
+    setStreamingContent('');
+    const payload = {
+      model: "gpt-3.5-turbo",
+      messages: conversation,
+      temperature: 0.7,
+      max_tokens: 1024,
+      stream: true
+    };
+
+    try {
+      const response = await fetch("http://127.0.0.1:1283/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer " + apiKey
+        },
+        body: JSON.stringify(payload)
+      });
+      if (!response.ok) throw new Error("Network response was not ok");
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error("No reader available");
+
+      const decoder = new TextDecoder("utf-8");
+      let accumulated = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = chunk.split("\n");
+        for (const line of lines) {
+          if (line.startsWith("data: ")) {
+            const jsonStr = line.slice(6).trim();
+            if (jsonStr === "[DONE]") continue;
+            try {
+              const dataObj = JSON.parse(jsonStr);
+              const delta = dataObj.choices[0].delta;
+              if (delta && delta.content) {
+                accumulated += delta.content;
+                setStreamingContent(accumulated);
+              }
+            } catch (e) {
+              console.error("JSON parse error:", e);
+            }
+          }
+        }
+      }
+      appendMessage({ role: "assistant", content: accumulated });
+      setStatus("Response complete.");
+    } catch (error) {
+      console.error("Fetch error:", error);
+      setStatus("Error sending message.");
+    }
   };
 
   return (
@@ -125,6 +216,7 @@ const ChatWidget: React.FC = () => {
       <ChatHeader>
         <span>Chat Assistant</span>
         <div>
+          <SecondaryButton onClick={sendPageContext}>Context</SecondaryButton>
           <SecondaryButton onClick={() => setMinimized(!minimized)}>
             {minimized ? "Expand" : "Collapse"}
           </SecondaryButton>
@@ -136,8 +228,11 @@ const ChatWidget: React.FC = () => {
         <>
           <ChatMessages ref={chatLogRef}>
             {messages.map((msg, idx) => (
-              <div key={idx} style={{ marginBottom: "10px" }}>
-                <strong>{msg.role}:</strong> <span dangerouslySetInnerHTML={{ __html: marked.parse(msg.content) }} />
+              <div key={idx} style={{ marginBottom: "12px" }}>
+                <strong>{msg.role}:</strong>{" "}
+                <span
+                  dangerouslySetInnerHTML={{ __html: marked.parse(msg.content) }}
+                />
               </div>
             ))}
           </ChatMessages>
@@ -147,9 +242,13 @@ const ChatWidget: React.FC = () => {
               placeholder="Type your message..."
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && (e.preventDefault(), sendMessage())}
+              onKeyDown={(e) =>
+                e.key === "Enter" &&
+                !e.shiftKey &&
+                (e.preventDefault(), sendUserMessage())
+              }
             />
-            <ChatSendButton onClick={sendMessage}>Send</ChatSendButton>
+            <ChatSendButton onClick={sendUserMessage}>Send</ChatSendButton>
           </ChatInputContainer>
         </>
       )}
