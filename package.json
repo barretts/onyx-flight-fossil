@@ -1,5 +1,5 @@
 {
-  "name": "lm-studio-chat-deluxe",
+  "name": "llm-chat",
   "version": "0.5.0",
   "description": "A deluxe floating chat widget with streaming markdown and syntax-highlighted code blocks, built with React and Tailwind CSS.",
   "main": "./dist/index.js",
@@ -24,7 +24,7 @@
     "preview": "vite preview --port 4000",
     "load-extension": "npm run build && start chrome://extensions/"
   },
-  "author": "Your Name",
+  "author": "Barrett Sonntag",
   "license": "MIT",
   "dependencies": {
     "@types/styled-components": "^5.1.34",
