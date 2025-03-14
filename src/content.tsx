@@ -43,4 +43,4 @@ document.body.appendChild(widgetContainer);
 
 const root = ReactDOM.createRoot(widgetContainer);
 const asdfads = <ChatWidget apiKey="" />;
-root.render(asdfads);
+root.render(<div id="barrett" className="barrett">{asdfads}</div>);

@@ -1,7 +1,8 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { marked } from 'marked';
 import hljs from 'highlight.js';
-import 'highlight.js/styles/github.css'; // npm-installed CSS for syntax highlighting
+import 'highlight.js/styles/github-dark.css'; // npm-installed highlight theme
+// import "../content.css"; // Tailwind CSS directives
 
 // Configure marked to use highlight.js for code blocks.
 marked.setOptions({
@@ -28,17 +29,16 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ apiKey }) => {
   const [status, setStatus] = useState<string>('');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState<string>('');
-  const chatLogRef = useRef<HTMLDivElement>(null);
   const [streamingContent, setStreamingContent] = useState<string>('');
+  const chatLogRef = useRef<HTMLDivElement>(null);
 
-  // Scroll chat log to bottom when messages or streaming content updates.
   useEffect(() => {
     if (chatLogRef.current) {
       chatLogRef.current.scrollTop = chatLogRef.current.scrollHeight;
     }
   }, [messages, streamingContent]);
 
-  // Send page context (system message) to the conversation.
+  // Send page context as a system message.
   const sendPageContext = () => {
     setStatus("Extracting page context...");
     const pageContent = document.body.innerText;
@@ -51,12 +51,10 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ apiKey }) => {
     setStatus("Context sent. Start chatting!");
   };
 
-  // Append a message to the chat log.
   const appendMessage = (msg: ChatMessage) => {
     setMessages(prev => [...prev, msg]);
   };
 
-  // Send user message and trigger chat request.
   const sendUserMessage = () => {
     if (!input.trim()) return;
     const userMsg: ChatMessage = { role: "user", content: input.trim() };
@@ -65,7 +63,6 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ apiKey }) => {
     sendChatMessage([...messages, userMsg]);
   };
 
-  // Handle Enter key for sending (and Ctrl+Enter for newline).
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.ctrlKey) {
       e.preventDefault();
@@ -73,7 +70,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ apiKey }) => {
     }
   };
 
-  // Send chat message to LM Studio and process streaming response.
+  // Send a chat message to LM Studio and process the streaming response.
   const sendChatMessage = async (conversation: ChatMessage[]) => {
     setStatus("Sending message...");
     setStreamingContent('');
@@ -97,10 +94,8 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ apiKey }) => {
       if (!response.ok) throw new Error("Network response was not ok");
       const reader = response.body?.getReader();
       if (!reader) throw new Error("No reader available");
-
       const decoder = new TextDecoder("utf-8");
       let accumulated = '';
-
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
@@ -132,27 +127,38 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ apiKey }) => {
   };
 
   return (
-    <div className="fixed bottom-5 right-5 w-96 max-h-[80vh] bg-white rounded-lg border border-gray-200 shadow-lg flex flex-col z-50">
-      <header className="bg-gradient-to-r from-blue-500 to-teal-500 text-white p-3 flex justify-between items-center text-lg">
-        <span>LM Studio Chat</span>
+    <div className="fixed bottom-6 right-6 w-96 max-h-[80vh] bg-white rounded-2xl border border-gray-200 shadow-2xl flex flex-col overflow-hidden z-50">
+      <header className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-4 py-3 flex justify-between items-center">
+        <h1 className="text-xl font-bold">Chat Assistant</h1>
         <div>
-          <button onClick={() => setMinimized(!minimized)} className="mr-2" title="Minimize">
-            {minimized ? "▲" : "–"}
+          <button
+            onClick={() => setMinimized(!minimized)}
+            className="mr-3 focus:outline-none hover:text-gray-300"
+            title="Toggle"
+          >
+            {minimized ? "Expand" : "Collapse"}
           </button>
-          <button onClick={() => {/* Optionally remove widget */}} title="Close">
+          <button
+            onClick={() => { /* You can implement widget removal if desired */ }}
+            className="focus:outline-none hover:text-gray-300"
+            title="Close"
+          >
             ×
           </button>
         </div>
       </header>
       {!minimized && (
-        <div className="flex flex-col p-3 flex-1 overflow-hidden">
-          <div className="mb-3">
-            <button onClick={sendPageContext} className="bg-blue-500 text-white px-3 py-1 rounded">
+        <div className="flex flex-col flex-1 p-4">
+          <div className="mb-3 flex items-center">
+            <button
+              onClick={sendPageContext}
+              className="bg-indigo-500 text-white px-4 py-2 rounded-md focus:outline-none hover:bg-indigo-500"
+            >
               Send Page Context
             </button>
-            <span className="ml-2 text-sm text-gray-600">{status}</span>
+            <span className="ml-4 text-sm text-gray-600">{status}</span>
           </div>
-          <div ref={chatLogRef} className="flex-1 border border-gray-300 rounded p-2 bg-gray-50 overflow-y-auto mb-3 text-sm">
+          <div ref={chatLogRef} className="flex-1 border border-gray-300 rounded-md p-3 bg-gray-50 overflow-y-auto mb-3 text-sm">
             {messages.map((msg, idx) => (
               <div key={idx} className="mb-2">
                 <span className="font-bold text-gray-800">{msg.role}:</span>
@@ -161,20 +167,23 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ apiKey }) => {
             ))}
             {streamingContent && (
               <div className="mb-2">
-                <span className="font-bold text-gray-800">LM Studio:</span>
+                <span className="font-bold text-gray-800">Assistant:</span>
                 <span className="ml-2" dangerouslySetInnerHTML={{ __html: marked.parse(streamingContent) }} />
               </div>
             )}
           </div>
-          <div className="flex items-end">
+          <div className="flex">
             <textarea
-              className="flex-1 border border-gray-300 rounded p-2 text-sm resize-none h-16"
+              className="flex-1 border border-gray-300 rounded-l-md p-2 focus:outline-none focus:ring-2 focus:ring-indigo-400 text-sm resize-none h-20"
               placeholder="Type your message..."
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
             />
-            <button onClick={sendUserMessage} className="bg-teal-500 text-white px-4 py-2 ml-2 rounded text-sm">
+            <button
+              onClick={sendUserMessage}
+              className="bg-indigo-600 text-white px-4 py-2 rounded-r-md focus:outline-none text-sm hover:bg-indigo-500"
+            >
               Send
             </button>
           </div>
