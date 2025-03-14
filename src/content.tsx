@@ -33,7 +33,6 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import ChatWidget from "./components/ChatWidget";
-import "./index.css"; // Tailwind CSS directives
 
 // const API_KEY = "YOUR_API_KEY_HERE"; // Replace with your LM Studio API key
 

@@ -1,13 +1,11 @@
 import ReactDOM from "react-dom/client";
+import { ShadowDOM } from 'react-shadow';
 import ChatWidget from "./components/ChatWidget";
-import "./index.css"; // Tailwind CSS directives
 
-// const API_KEY = "YOUR_API_KEY_HERE"; // Replace with your LM Studio API key
+const API_KEY = "YOUR_API_KEY_HERE";
 
-// Create a container element and mount the React app.
 const widgetContainer = document.createElement("div");
 document.body.appendChild(widgetContainer);
 
 const root = ReactDOM.createRoot(widgetContainer);
-const asdfads = <ChatWidget apiKey="" />;
-root.render(asdfads);
+root.render(<ShadowDOM><ChatWidget apiKey={API_KEY} /></ShadowDOM>);
